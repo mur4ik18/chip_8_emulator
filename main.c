@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include<stdlib.h>
 
  // current opcode
 unsigned short opcode;
@@ -43,6 +44,9 @@ int main(void)
   
   memory[4] = 0x81;
   memory[5] = 0x24;
+  
+  memory[6] = 0x00;
+  memory[7] = 0xE0;
 
   // Emulation loop
   for (;;)
@@ -78,6 +82,7 @@ void cycle_emulator()
       // clear display
     case 0x00E0:
       printf("clear_display()\n");
+      system("clear");
       break;
     }
     break;
