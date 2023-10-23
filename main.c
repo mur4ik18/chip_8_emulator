@@ -1,3 +1,4 @@
+#include "SDL.h"
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -31,7 +32,7 @@ unsigned short stack[16];
 unsigned short sp;
 unsigned char key[16];
 
-void cycle_emulator ();
+void cycle_emulator (void);
 
 int
 main (void)
@@ -59,7 +60,7 @@ main (void)
 }
 
 void
-cycle_emulator ()
+cycle_emulator (void)
 {
   // fetch => decode => execute opcode
   // fetch opcode
