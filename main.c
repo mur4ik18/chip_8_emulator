@@ -132,23 +132,27 @@ cycle_emulator ()
         {
           // vx = vy
         case 0x0000:
-          V[(opcode & 0x0F00) >> 8] = V[(opcode & 0x00F0) >> 4] break;
+          V[(opcode & 0x0F00) >> 8] = V[(opcode & 0x00F0) >> 4];
+          break;
           // vx |= vy
         case 0x0001:
-          V[(opcode & 0x0F00) >> 8] |= V[(opcode & 0x00F0) >> 4] break;
+          V[(opcode & 0x0F00) >> 8] |= V[(opcode & 0x00F0) >> 4];
+          break;
           // vx &= vy
         case 0x0002:
-          V[(opcode & 0x0F00) >> 8] &= V[(opcode & 0x00F0) >> 4] break;
+          V[(opcode & 0x0F00) >> 8] &= V[(opcode & 0x00F0) >> 4];
+          break;
           // vx ^= Vy
         case 0x0003:
-          V[(opcode & 0x0F00) >> 8] ^= V[(opcode & 0x00F0) >> 4] break;
+          V[(opcode & 0x0F00) >> 8] ^= V[(opcode & 0x00F0) >> 4];
+          break;
           // ADD VY to VX
           // 0x8xy4
         case 0x0004:
           if (V[(opcode & 0x00F0) >> 4] > V[(opcode & 0x0F00) >> 8])
             V[0xF] = 1;
           else
-            v[0xF] = 0;
+            V[0xF] = 0;
           V[(opcode & 0x0F00) >> 8] += V[(opcode & 0x00F0) >> 4];
           break;
           // vx -= Vy
@@ -156,12 +160,13 @@ cycle_emulator ()
           if (V[(opcode & 0x0F00) >> 8] > V[(opcode & 0x00F0) >> 4])
             V[0xF] = 0;
           else
-            v[0xF] = 1;
+            V[0xF] = 1;
           V[(opcode & 0x0F00) >> 8] -= V[(opcode & 0x00F0) >> 4];
           break;
           // vx >>= 1
         case 0x0006:
-          V[(opcode & 0x0F00) >> 8] >>= V[(opcode & 0x00F0) >> 4] break;
+          V[(opcode & 0x0F00) >> 8] >>= V[(opcode & 0x00F0) >> 4];
+          break;
         // vx = Vy - Vx
         case 0x0007:
           if (V[(opcode & 0x00F0) >> 4] < V[(opcode & 0x0F00) >> 8])
@@ -169,10 +174,12 @@ cycle_emulator ()
           else
             V[0xF] = 1;
           V[(opcode & 0x0F00) >> 8]
-              = V[(opcode & 0x00F0) >> 4] - V[(opcode & 0x0F00) >> 8] break;
+              = V[(opcode & 0x00F0) >> 4] - V[(opcode & 0x0F00) >> 8];
+          break;
           // vx <<= Vy
         case 0x000E:
-          V[(opcode & 0x0F00) >> 8] <<= V[(opcode & 0x00F0) >> 4] break;
+          V[(opcode & 0x0F00) >> 8] <<= V[(opcode & 0x00F0) >> 4];
+          break;
         }
       break;
       // Cond if (Vx != Vy)
@@ -221,6 +228,15 @@ cycle_emulator ()
     default:
       printf ("Uknown opcode %04X \n", opcode);
     }
-  pc += 2;
+
   // Update timers
+  if (delay_timer > 0)
+    --delay_timer;
+
+  if (sound_timer > 0)
+    {
+      if (sound_timer == 1)
+        printf ("BEEEEEEEEEEEEEP!\n");
+      --sound_timer;
+    }
 }
