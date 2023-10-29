@@ -1,4 +1,4 @@
-#include <SDL.h>
+
 #include <stdio.h>
 #include <stdlib.h>
 #include "main.h"
@@ -23,7 +23,6 @@ main (void)
   graphique_break ();
   return 0;
 }
-
 void
 init (void)
 {
@@ -37,15 +36,3 @@ init (void)
   memory[4] = 0x81;
   memory[5] = 0x24;
 }
-
-void
-graphique_setup (void)
-{
-}
-
-void
-graphique_break (void)
-{
-}
-
-
