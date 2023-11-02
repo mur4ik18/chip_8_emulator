@@ -2,6 +2,8 @@
 #define MAIN_H
 
 #include "emulator.h"
+#include "graphic.h"
+#include </opt/homebrew/include/SDL2/SDL.h>
 
 // current opcode
 unsigned short opcode;
@@ -33,11 +35,20 @@ unsigned short stack[16];
 unsigned short sp;
 unsigned char key[16];
 
+typedef struct
+{
+  SDL_Renderer *renderer;
+  SDL_Window *window;
+} App;
+
+App app;
 
 void init (void);
+void read_rom (void);
 // graphique
 void graphique_setup (void);
 void graphique_break (void);
 
+FILE *fptr;
 
 #endif /* MAIN_H */

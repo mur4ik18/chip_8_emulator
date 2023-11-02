@@ -1,13 +1,19 @@
 
+#include "main.h"
 #include <stdio.h>
 #include <stdlib.h>
-#include "main.h"
 
 int
-main (void)
+main (int argc, char *argv[])
 {
+  if (argc == 2)
+    {
+      fptr = fopen (argv[1], "rb");
+      read_rom ();
+    }
   // graphique setup
-  graphique_setup ();
+  // memset(&app, 0, sizeof(App));
+  // graphique_setup ();
 
   init ();
 
@@ -15,24 +21,35 @@ main (void)
   for (;;)
     {
       cycle_emulator ();
-      if (pc >= 20)
-        break;
+      // prepareScene ();
+
+      // doInput ();
+      // render_graphic();
+      // presentScene ();
+
+      SDL_Delay (16);
     }
   printf ("pc = %d\n", pc);
-
-  graphique_break ();
   return 0;
 }
+
 void
 init (void)
 {
-  // memoir writing
-  memory[0] = 0x61;
-  memory[1] = 0x05;
+  for (int i = 0; i < 80; ++i)
+    memory[i] = chip8_fontset[i];
+}
 
-  memory[2] = 0x62;
-  memory[3] = 0x02;
-
-  memory[4] = 0x81;
-  memory[5] = 0x24;
+void
+read_rom (void)
+{
+  printf("start loading your rom \n");
+  char *buffer = (char*) malloc(200);
+  while(fgets(buffer, 100, fptr)) {
+    printf("%s ", buffer);
+  }
+  for(int i = 0; i < 20; ++i)
+    memory[i + 512] = buffer[i];
+  
+  printf("a delicacy/n");
 }
