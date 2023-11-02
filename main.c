@@ -2,6 +2,7 @@
 #include "main.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 int
 main (int argc, char *argv[])
@@ -26,10 +27,10 @@ main (int argc, char *argv[])
       // doInput ();
       // render_graphic();
       // presentScene ();
-
-      SDL_Delay (16);
+      printf ("pc = %d\n", pc);
+      // SDL_Delay (16);
     }
-  printf ("pc = %d\n", pc);
+
   return 0;
 }
 
@@ -43,13 +44,21 @@ init (void)
 void
 read_rom (void)
 {
-  printf("start loading your rom \n");
-  char *buffer = (char*) malloc(200);
-  while(fgets(buffer, 100, fptr)) {
-    printf("%s ", buffer);
-  }
-  for(int i = 0; i < 20; ++i)
-    memory[i + 512] = buffer[i];
-  
-  printf("a delicacy/n");
+  if (fptr != NULL)
+    {
+      int i = 0;
+      char ch;
+      printf ("start loading your rom \n");
+
+      while (!feof (fptr))
+        {
+
+          ch = fgetc (fptr);
+          memory[i + 512] = ch;
+          printf ("%04x\n", memory[i + 512]);
+          i++;
+        }
+      printf ("a delicacy/n");
+    }
+  fclose (fptr);
 }
