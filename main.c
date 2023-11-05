@@ -98,15 +98,14 @@ cycle_emulator (Context *ctx)
       break;
       // JP addr
     case 0x1000:
-      ctx->pc = opcode & 0x0FFF - 2;
+      ctx->pc = (opcode & 0x0FFF) - 2;
       break;
       // Call addr call subrutine
       // The interpreter increments the stack pointer, then puts the current PC
       // on the top of the stack. The PC is then set to nnn.
     case 0x2000:
-      ctx->stack[ctx->sp] = ctx->pc;
-      ctx->sp++;
-      ctx->pc = opcode & 0x0FFF - 2;
+      ctx->stack[ctx->sp++] = ctx->pc;
+      ctx->pc = (opcode & 0x0FFF) - 2;
       break;
       // SE Vx byte
       // 3Xkk
@@ -128,8 +127,6 @@ cycle_emulator (Context *ctx)
       // 0x6XNN
     case 0x6000:
       ctx->V[(opcode & 0x0F00) >> 8] = opcode & 0x00FF;
-      printf ("%04X <- %d\n", (opcode & 0x0F00) >> 8,
-              ctx->V[(opcode & 0x0F00) >> 8]);
       break;
       // ADD Vx += KK
       // 7XKK
@@ -165,49 +162,55 @@ cycle_emulator (Context *ctx)
           break;
           // vx -= Vy
         case 0x0005:
-          if (ctx->V[(opcode & 0x0F00) >> 8] > ctx->V[(opcode & 0x00F0) >> 4])
-            ctx->V[0xF] = 0;
-          else
-            ctx->V[0xF] = 1;
+          ctx->V[0xF] = !(ctx->V[(opcode & 0x0F00) >> 8]
+                          > ctx->V[(opcode & 0x00F0) >> 4]);
           ctx->V[(opcode & 0x0F00) >> 8] -= ctx->V[(opcode & 0x00F0) >> 4];
           break;
           // vx >>= 1
         case 0x0006:
+          ctx->V[0xF] >>= ctx->V[(opcode & 0x0F00) >> 8];
           ctx->V[(opcode & 0x0F00) >> 8] >>= ctx->V[(opcode & 0x00F0) >> 4];
           break;
         // vx = Vy - Vx
         case 0x0007:
-          if (ctx->V[(opcode & 0x00F0) >> 4] < ctx->V[(opcode & 0x0F00) >> 8])
-            ctx->V[0xF] = 0;
-          else
-            ctx->V[0xF] = 1;
-          ctx->V[(opcode & 0x0F00) >> 8]
-              = ctx->V[(opcode & 0x00F0) >> 4] - ctx->V[(opcode & 0x0F00) >> 8];
+          ctx->V[0xF] = !(ctx->V[(opcode & 0x00F0) >> 4]
+                          < ctx->V[(opcode & 0x0F00) >> 8]);
+          ctx->V[(opcode & 0x0F00) >> 8] = ctx->V[(opcode & 0x00F0) >> 4]
+                                           - ctx->V[(opcode & 0x0F00) >> 8];
           break;
           // vx <<= Vy
         case 0x000E:
+	  ctx->V[0xF] <<= ctx->V[(opcode & 0x0F00) >> 8];
           ctx->V[(opcode & 0x0F00) >> 8] <<= ctx->V[(opcode & 0x00F0) >> 4];
           break;
         }
       break;
       // Cond if (Vx != Vy)
     case 0x9000:
+      if (ctx->V[(opcode & 0x0F00) >> 8] != ctx->V[(opcode & 0x00F0) >> 4])
+	ctx->pc += 2;
       break;
       // Mem
     case 0xA000:
-      ctx->I = opcode & 0x0FFF;
+      ctx->I = (opcode & 0x0FFF)-2;
       break;
       // Folow
     case 0xB000:
+      // wtf??
+      ctx->pc = (opcode & 0x0FFF) - 2;
       break;
       // Rand
     case 0xC000:
+      srand(2);
+      ctx->V[(opcode & 0x0F00) >> 8] = rand() & (opcode & 0x00FF);
       break;
       // display
     case 0xD000:
       break;
-      // KeyOp
+      // keyboard input 
+      // KeyOp 
     case 0xE000:
+      
       break;
       //
     case 0xF000:
