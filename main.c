@@ -1,4 +1,5 @@
 #include "main.h"
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -13,23 +14,23 @@ main (int argc, char *argv[])
       read_rom (&ctx);
     }
   // graphique setup
-  // memset(&app, 0, sizeof(App));
-  // graphique_setup ();
+  memset (&app, 0, sizeof (App));
+  graphique_setup ();
 
   init (&ctx);
 
   // Emulation loop
   for (;;)
     {
+      prepareScene ();
       cycle_emulator (&ctx);
 
-      // prepareScene ();
+      doInput ();
+      render_graphic (&ctx);
 
-      // doInput ();
-      // render_graphic();
       // presentScene ();
       printf ("pc = %d\n", ctx.pc);
-      // SDL_Delay (16);
+      SDL_Delay (1000);
     }
 
   return 0;
@@ -42,6 +43,8 @@ init (Context *ctx)
   opcode = 0;
   ctx->I = 0;
   ctx->sp = 0;
+  for (int i = 0; i < (64 * 32); i++)
+    ctx->gfx[i] = 0;
   for (int i = 0; i < 80; ++i)
     ctx->memory[i] = chip8_fontset[i];
 }
@@ -60,7 +63,6 @@ read_rom (Context *ctx)
 
           ch = fgetc (fptr);
           ctx->memory[i + 512] = ch;
-          printf ("%04x\n", ctx->memory[i + 512]);
           i++;
         }
       printf ("a delicacy/n");
@@ -180,7 +182,7 @@ cycle_emulator (Context *ctx)
           break;
           // vx <<= Vy
         case 0x000E:
-	  ctx->V[0xF] <<= ctx->V[(opcode & 0x0F00) >> 8];
+          ctx->V[0xF] <<= ctx->V[(opcode & 0x0F00) >> 8];
           ctx->V[(opcode & 0x0F00) >> 8] <<= ctx->V[(opcode & 0x00F0) >> 4];
           break;
         }
@@ -188,51 +190,97 @@ cycle_emulator (Context *ctx)
       // Cond if (Vx != Vy)
     case 0x9000:
       if (ctx->V[(opcode & 0x0F00) >> 8] != ctx->V[(opcode & 0x00F0) >> 4])
-	ctx->pc += 2;
+        ctx->pc += 2;
       break;
       // Mem
     case 0xA000:
-      ctx->I = (opcode & 0x0FFF)-2;
+      ctx->I = (opcode & 0x0FFF) - 2;
       break;
       // Folow
     case 0xB000:
       // wtf??
-      ctx->pc = (opcode & 0x0FFF) - 2;
+      ctx->pc = ctx->V[0] + ((opcode & 0x0FFF) - 2);
       break;
       // Rand
     case 0xC000:
-      srand(2);
-      ctx->V[(opcode & 0x0F00) >> 8] = rand() & (opcode & 0x00FF);
+      srand (2);
+      ctx->V[(opcode & 0x0F00) >> 8] = rand () & (opcode & 0x00FF);
       break;
       // display
     case 0xD000:
-      break;
-      // keyboard input 
-      // KeyOp 
+      {
+        printf ("Print opcode %04x\n", opcode);
+        unsigned short x = ctx->V[(opcode & 0x0F00) >> 8];
+        unsigned short y = ctx->V[(opcode & 0x00F0) >> 4];
+        unsigned short height = opcode & 0x000F;
+        unsigned short pixel;
+        ctx->V[0xF] = 0;
+        for (int yl = 0; yl < height; yl++)
+          {
+            pixel = ctx->memory[ctx->I + yl];
+	    printf("===== %d \n", ctx->I+yl);
+	    printf("----- %d \n", pixel);
+            for (int xl = 0; xl < 8; xl++)
+              {
+                if ((pixel & (0x80 >> xl)) != 0)
+                  {
+                    if (ctx->gfx[(x + xl + ((y + yl) * 64))] == 1)
+                      {
+                        ctx->V[0xF] = 1;
+                      }
+                    ctx->gfx[(x + xl + ((y + yl) * 64))] ^= 1;
+                  }
+              }
+          }
+        ctx->drawFlag = true;
+        break;
+      }
+      // keyboard input
+      // KeyOp
     case 0xE000:
-      
+
       break;
       //
     case 0xF000:
       switch (opcode & 0x00FF)
         {
+          // get_delaytimer()
         case 0x0007:
+          ctx->V[(opcode & 0x0F00) >> 8] = ctx->delay_timer;
           break;
+
+          // keyOp
         case 0x000A:
           break;
+
         case 0x0015:
+          ctx->delay_timer = ctx->V[(opcode & 0x0F00) >> 8];
           break;
         case 0x0018:
+          ctx->sound_timer = ctx->V[(opcode & 0x0F00) >> 8];
           break;
+          // MEM
         case 0x001E:
+          ctx->I += ctx->V[(opcode & 0x0F00) >> 8];
           break;
+          // MEM sprite_addr
         case 0x0029:
+          ctx->I += chip8_fontset[ctx->V[(opcode & 0x0F00) >> 8]];
           break;
         case 0x0033:
+          ctx->memory[ctx->I] = ctx->V[(opcode & 0x0F00) >> 8] / 100;
+          ctx->memory[ctx->I + 1] = (ctx->V[(opcode & 0x0F00) >> 8] / 10) % 10;
+          ctx->memory[ctx->I + 2]
+              = (ctx->V[(opcode & 0x0F00) >> 8] % 100) % 10;
           break;
+
+          // MEM
         case 0x0055:
+          printf ("55\n");
           break;
+          // MEM
         case 0x0065:
+          printf ("65\n");
           break;
         }
 
@@ -250,4 +298,115 @@ cycle_emulator (Context *ctx)
         printf ("BEEEEEEEEEEEEEP!\n");
       --ctx->sound_timer;
     }
+}
+
+void
+graphique_setup (void)
+{
+  int rendererFlags, windowFlags;
+
+  rendererFlags = SDL_RENDERER_ACCELERATED;
+
+  windowFlags = 0;
+
+  if (SDL_Init (SDL_INIT_VIDEO) < 0)
+    {
+      printf ("Couldn't initialize SDL: %s\n", SDL_GetError ());
+      exit (1);
+    }
+
+  app.window = SDL_CreateWindow ("Shooter 01", SDL_WINDOWPOS_UNDEFINED,
+                                 SDL_WINDOWPOS_UNDEFINED, SCREEN_WIDTH,
+                                 SCREEN_HEIGHT, windowFlags);
+
+  if (!app.window)
+    {
+      printf ("Failed to open %d x %d window: %s\n", SCREEN_WIDTH,
+              SCREEN_HEIGHT, SDL_GetError ());
+      exit (1);
+    }
+
+  SDL_SetHint (SDL_HINT_RENDER_SCALE_QUALITY, "linear");
+
+  app.renderer = SDL_CreateRenderer (app.window, -1, rendererFlags);
+
+  if (!app.renderer)
+    {
+      printf ("Failed to create renderer: %s\n", SDL_GetError ());
+      exit (1);
+    }
+}
+
+void
+doInput (void)
+{
+  SDL_Event event;
+
+  while (SDL_PollEvent (&event))
+    {
+      switch (event.type)
+        {
+        case SDL_QUIT:
+          exit (0);
+          break;
+
+        default:
+          break;
+        }
+    }
+}
+
+void
+prepareScene (void)
+{
+  SDL_SetRenderDrawColor (app.renderer, 0, 0, 0, 255);
+  SDL_RenderClear (app.renderer);
+}
+
+void
+presentScene (void)
+{
+  SDL_RenderPresent (app.renderer);
+}
+
+void
+render_graphic (Context *ctx)
+{
+  SDL_Rect rect;
+  rect.w = 10;
+  rect.h = 10;
+  int x = 0;
+  int y = 0;
+
+  for (int i = 0; i < (64 * 32); i++)
+    {
+
+      if ((i != 0) && ((i % 64) == 0))
+        {
+          y++;
+          x = 0;
+        }
+
+      rect.x = x*10;
+      rect.y = y*10;
+
+      if (ctx->gfx[i] == 1)
+        {
+
+          // SDL_SetRenderDrawColor (app.renderer, 0, 0, 0, SDL_ALPHA_OPAQUE);
+          // SDL_RenderClear (app.renderer);
+          SDL_SetRenderDrawColor (app.renderer, 255, 255, 255,
+                                  SDL_ALPHA_OPAQUE);
+          SDL_RenderFillRect (app.renderer, &rect);
+        }
+      else
+        {
+	  
+          SDL_SetRenderDrawColor (app.renderer, 0, 0, 0,
+                                  SDL_ALPHA_OPAQUE);
+          SDL_RenderFillRect (app.renderer, &rect);
+        }
+      x++;
+    }
+  SDL_RenderPresent (app.renderer);
 }
