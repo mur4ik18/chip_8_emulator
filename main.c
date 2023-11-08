@@ -30,7 +30,7 @@ main (int argc, char *argv[])
 
       // presentScene ();
       printf ("pc = %d\n", ctx.pc);
-      SDL_Delay (1000);
+      SDL_Delay (100);
     }
 
   return 0;
@@ -60,12 +60,10 @@ read_rom (Context *ctx)
 
       while (!feof (fptr))
         {
-
           ch = fgetc (fptr);
           ctx->memory[i + 512] = ch;
           i++;
         }
-      printf ("a delicacy/n");
     }
   fclose (fptr);
 }
@@ -78,6 +76,7 @@ cycle_emulator (Context *ctx)
   // opcode = 0x255;
   // printf("%d %d\n", memory[pc], memory[pc+1]);
   opcode = ctx->memory[ctx->pc] << 8 | ctx->memory[ctx->pc + 1];
+  printf ("opcode %04x\n", opcode);
   // printf("opcode = %04X \n", memory[pc] <<8 | memory[pc+1]);
 
   switch (opcode & 0xF000)
@@ -100,14 +99,14 @@ cycle_emulator (Context *ctx)
       break;
       // JP addr
     case 0x1000:
-      ctx->pc = (opcode & 0x0FFF) - 2;
+      ctx->pc = (opcode & 0x0FFF);
       break;
       // Call addr call subrutine
       // The interpreter increments the stack pointer, then puts the current PC
       // on the top of the stack. The PC is then set to nnn.
     case 0x2000:
       ctx->stack[ctx->sp++] = ctx->pc;
-      ctx->pc = (opcode & 0x0FFF) - 2;
+      ctx->pc = (opcode & 0x0FFF);
       break;
       // SE Vx byte
       // 3Xkk
@@ -194,12 +193,12 @@ cycle_emulator (Context *ctx)
       break;
       // Mem
     case 0xA000:
-      ctx->I = (opcode & 0x0FFF) - 2;
+      ctx->I = (opcode & 0x0FFF);
       break;
       // Folow
     case 0xB000:
       // wtf??
-      ctx->pc = ctx->V[0] + ((opcode & 0x0FFF) - 2);
+      ctx->pc = ctx->V[0] + (opcode & 0x0FFF);
       break;
       // Rand
     case 0xC000:
@@ -209,28 +208,33 @@ cycle_emulator (Context *ctx)
       // display
     case 0xD000:
       {
-        printf ("Print opcode %04x\n", opcode);
-        unsigned short x = ctx->V[(opcode & 0x0F00) >> 8];
-        unsigned short y = ctx->V[(opcode & 0x00F0) >> 4];
+        unsigned short x_coord = ctx->V[(opcode & 0x0F00) >> 8] % 64;
+        unsigned short y_coord = ctx->V[(opcode & 0x00F0) >> 4] % 32;
         unsigned short height = opcode & 0x000F;
-        unsigned short pixel;
+        unsigned short x_orig = x_coord;
+        unsigned short sprite;
         ctx->V[0xF] = 0;
-        for (int yl = 0; yl < height; yl++)
+
+        for (uint8_t i = 0; i < height; i++)
           {
-            pixel = ctx->memory[ctx->I + yl];
-	    printf("===== %d \n", ctx->I+yl);
-	    printf("----- %d \n", pixel);
-            for (int xl = 0; xl < 8; xl++)
+            sprite = ctx->memory[ctx->I + i];
+            x_coord = x_orig;
+            for (int8_t j = 7; j >= 0; j--)
               {
-                if ((pixel & (0x80 >> xl)) != 0)
+                bool *pixel = &ctx->gfx[(y_coord * 64) + x_coord];
+                bool sprite_bit = (sprite & (1 << j));
+                if (sprite_bit && *pixel)
                   {
-                    if (ctx->gfx[(x + xl + ((y + yl) * 64))] == 1)
-                      {
-                        ctx->V[0xF] = 1;
-                      }
-                    ctx->gfx[(x + xl + ((y + yl) * 64))] ^= 1;
+                    ctx->V[0xF] = 1;
                   }
+
+                *pixel ^= sprite_bit;
+
+                if (++x_coord >= 64)
+                  break;
               }
+            if (++y_coord >= 32)
+              break;
           }
         ctx->drawFlag = true;
         break;
@@ -387,10 +391,10 @@ render_graphic (Context *ctx)
           x = 0;
         }
 
-      rect.x = x*10;
-      rect.y = y*10;
+      rect.x = x * 10;
+      rect.y = y * 10;
 
-      if (ctx->gfx[i] == 1)
+      if (ctx->gfx[i])
         {
 
           // SDL_SetRenderDrawColor (app.renderer, 0, 0, 0, SDL_ALPHA_OPAQUE);
@@ -401,10 +405,8 @@ render_graphic (Context *ctx)
         }
       else
         {
-	  
-          SDL_SetRenderDrawColor (app.renderer, 0, 0, 0,
-                                  SDL_ALPHA_OPAQUE);
-          SDL_RenderFillRect (app.renderer, &rect);
+          // SDL_SetRenderDrawColor (app.renderer, 0, 0, 0, SDL_ALPHA_OPAQUE);
+          // SDL_RenderFillRect (app.renderer, &rect);
         }
       x++;
     }

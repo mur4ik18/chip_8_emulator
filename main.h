@@ -1,8 +1,8 @@
 #ifndef MAIN_H
 #define MAIN_H
 
-#include <stdbool.h>
 #include </opt/homebrew/include/SDL2/SDL.h>
+#include <stdbool.h>
 
 // current opcode
 unsigned short opcode;
@@ -26,7 +26,7 @@ typedef struct
   // 0x200 - 0xFFF - program ROM and work RAM
 
   // 2048 pixels black 1 and white 0
-  unsigned char gfx[64*32];
+  bool gfx[64 * 32];
 
   // interupts and hardware registers
   unsigned char delay_timer;
@@ -40,16 +40,13 @@ typedef struct
 
 } Context;
 
-
 typedef struct
 {
   SDL_Renderer *renderer;
   SDL_Window *window;
 } App;
 
-
-unsigned char chip8_fontset[80] = 
-{ 
+unsigned char chip8_fontset[] = {
   0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
   0x20, 0x60, 0x20, 0x20, 0x70, // 1
   0xF0, 0x10, 0xF0, 0x80, 0xF0, // 2
@@ -65,20 +62,19 @@ unsigned char chip8_fontset[80] =
   0xF0, 0x80, 0x80, 0x80, 0xF0, // C
   0xE0, 0x90, 0x90, 0x90, 0xE0, // D
   0xF0, 0x80, 0xF0, 0x80, 0xF0, // E
-  0xF0, 0x80, 0xF0, 0x80, 0x80  // F
+  0xF0, 0x80, 0xF0, 0x80, 0x80, // F
 };
 
 App app;
 
-#define SCREEN_WIDTH   640
-#define SCREEN_HEIGHT  320
-
+#define SCREEN_WIDTH 640
+#define SCREEN_HEIGHT 320
 
 void graphique_setup (void);
-void doInput(void);
-void prepareScene(void);
-void presentScene(void);
-void render_graphic(Context *ctx);
+void doInput (void);
+void prepareScene (void);
+void presentScene (void);
+void render_graphic (Context *ctx);
 void init (Context *ctx);
 void read_rom (Context *ctx);
 void cycle_emulator (Context *ctx);
